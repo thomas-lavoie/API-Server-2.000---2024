@@ -663,15 +663,15 @@ function renderLoginForm(user = null) {
           </div>
       `);
 
-  initImageUploaders();
   initFormValidation(); // important do to after all html injection!
 
   $("#goToRegister").on("click", async function () {
     $("#form").show();
     $("#form").empty();
+    $("#viewTitle").text("Inscription");
     $("#form").append(`
         <div class="abcdefg">
-          <form class="form" id="loginForm">
+          <form class="form" id="registerForm">
           <fieldset>
             <legend>Adresse courriel</legend>
             <input 
@@ -723,22 +723,45 @@ function renderLoginForm(user = null) {
           </fieldset>
           <fieldset>
             <legend>Avatar</legend>
+            <label class="form-label">Image </label>
             <div class='imageUploaderContainer'>
                 <div class='imageUploader'
-                    newImage='${create}'
-                    controlId='Image'
-                    imageSrc='${user.Avatar}'
-                    waitingImage="Loading_icon.gif">
+                     newImage='${create}'
+                     controlId='Avatar'
+                     imageSrc='${user.Avatar}' 
+                     waitingImage="Loading_icon.gif">
                 </div>
             </div>
           </fieldset>
-          <input type="submit" value="Enregistrer" id="loginSubmit" class="btn btn-primary">
+          <input type="submit" value="Enregistrer" id="registerSubmit" class="btn btn-primary">
           </form>
           </div>
       `);
 
     initImageUploaders();
-    initFormValidation(); // important do to after all html injection!
+    initFormValidation();
+
+    $("#registerForm").on("submit", async function (event) {
+        event.preventDefault();
+        const newUser = getFormData($("#registerForm"));
+        $.ajax({
+          url: "http://localhost:5000/accounts/register",
+          method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({
+            Email: $("#Email").val(),
+            Password: $("#Password").val(),
+            Name: $("#Name").val(),
+            Avatar: newUser.Avatar,
+          }),
+          success: function (response) {
+            showPosts();
+          },
+          error: function (error) {
+            $("#errMsg").text(error.responseJSON.error_description);
+          },
+        });
+      });
   });
 
   $("#loginForm").on("submit", async function (event) {
