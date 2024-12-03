@@ -284,3 +284,8 @@ label {
     align-items: center;
     justify-content: center;
 }
+
+#avatarDD {
+    height: 32px;
+    border-radius: 9999px;
+}

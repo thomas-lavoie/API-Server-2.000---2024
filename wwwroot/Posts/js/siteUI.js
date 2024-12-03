@@ -272,17 +272,56 @@ async function compileCategories() {
   }
 }
 function updateDropDownMenu() {
+  let user = JSON.parse(sessionStorage.getItem("user"));
   let DDMenu = $("#DDMenu");
   let selectClass = selectedCategory === "" ? "fa-check" : "fa-fw";
   DDMenu.empty();
-  DDMenu.append(
-    $(`
+  if (user) {
+    DDMenu.append(
+      $(`
+            <div class="dropdown-item menuItemLayout" id="usernameDD">
+                <img id="avatarDD" src="${user.Avatar}" /><b>${user.Name}</b>
+            </div>
+            `)
+    );
+    DDMenu.append($(`<div class="dropdown-divider"></div>`));
+    DDMenu.append(
+      $(`
+          <div class="dropdown-item menuItemLayout" id="modifyUserLink">
+              <i class="menuIcon fa fa-user-pen mx-2"></i> Modifier votre profil
+          </div>
+          `)
+    );
+    DDMenu.append(
+      $(`
+          <div class="dropdown-item menuItemLayout" id="logoutLink">
+              <i class="menuIcon fa fa-arrow-right-from-bracket mx-2"></i> Deconnexion
+          </div>
+          `)
+    );
+    DDMenu.append($(`<div class="dropdown-divider"></div>`));
+    $("#logoutLink").on("click", function () {
+      $.ajax({
+        url: `http://localhost:5000/accounts/logout?userId=${user.Id}`,
+        method: "GET",
+        success: function () {
+          sessionStorage.clear();
+          user = null;
+          updateDropDownMenu();
+        },
+      });
+    });
+  } else {
+    DDMenu.append(
+      $(`
         <div class="dropdown-item menuItemLayout" id="loginLink">
             <i class="menuIcon fa fa-arrow-right-to-bracket mx-2"></i> Connexion
         </div>
         `)
-  );
-  DDMenu.append($(`<div class="dropdown-divider"></div>`));
+    );
+    DDMenu.append($(`<div class="dropdown-divider"></div>`));
+  }
+
   DDMenu.append(
     $(`
         <div class="dropdown-item menuItemLayout" id="allCatCmd">
@@ -713,9 +752,10 @@ function renderLoginForm(user = null) {
         Password: $("#Password").val(),
       }),
       success: function (response) {
-        sessionStorage.setItem('bearerToken', response.Access_token);
-        sessionStorage.setItem('expiration', response.Expire_Time);
-        sessionStorage.setItem('user', JSON.stringify(response.User));
+        sessionStorage.setItem("bearerToken", response.Access_token);
+        sessionStorage.setItem("expiration", response.Expire_Time);
+        sessionStorage.setItem("user", JSON.stringify(response.User));
+        showPosts();
       },
       error: function (error) {
         $("#errMsg").text(error.responseJSON.error_description);
