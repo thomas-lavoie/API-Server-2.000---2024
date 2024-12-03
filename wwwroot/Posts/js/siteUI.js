@@ -112,14 +112,21 @@ async function showPosts(reset = false) {
   periodic_Refresh_paused = false;
   await postsPanel.show(reset);
 }
-function hidePosts() {
+function hidePosts(keepMenu = false) {
   postsPanel.hide();
   hideSearchIcon();
   $("#createPost").hide();
-  $("#menu").hide();
+  if (!keepMenu) $("#menu").hide();
   periodic_Refresh_paused = true;
 }
 function showLogin() {
+  hidePosts();
+  $("#abort").show();
+}
+function showVerify() {
+  hidePosts(true);
+}
+function showModification() {
   hidePosts();
   $("#abort").show();
 }
@@ -144,10 +151,20 @@ function showError(message, details = "") {
   $("#errorContainer").append($(`<div>${details}</div>`));
 }
 
-function showLoginPage() {
+function showLoginPage(info = "") {
   showLogin();
   $("#viewTitle").text("Connexion");
-  renderLoginForm();
+  renderLoginForm(null, info);
+}
+function showVerifyPage(user = null) {
+  showVerify();
+  $("#viewTitle").text("Vérification");
+  renderVerificationForm(user);
+}
+function showModificationPage(user) {
+  showModification();
+  $("#viewTitle").text("Modification");
+  renderModificationForm(user);
 }
 function showCreatePostForm() {
   showForm();
@@ -202,6 +219,7 @@ function start_Periodic_Refresh() {
   }, periodicRefreshPeriod * 1000);
 }
 async function renderPosts(queryString) {
+  let user = JSON.parse(sessionStorage.getItem("user"));
   let endOfData = false;
   queryString += "&sort=date,desc";
   compileCategories();
@@ -229,6 +247,9 @@ async function renderPosts(queryString) {
     showError(Posts_API.currentHttpError);
   }
   removeWaitingGif();
+  if (user && user.VerifyCode === "unverified") {
+    showVerifyPage(user);
+  }
   return endOfData;
 }
 function renderPost(post, loggedUser) {
@@ -308,8 +329,12 @@ function updateDropDownMenu() {
           sessionStorage.clear();
           user = null;
           updateDropDownMenu();
+          showPosts();
         },
       });
+    });
+    $("#modifyUserLink").on("click", function () {
+      showModificationPage(user);
     });
   } else {
     DDMenu.append(
@@ -630,13 +655,184 @@ function getFormData($form) {
   return jsonObject;
 }
 
-function renderLoginForm(user = null) {
+function renderVerificationForm(user = null) {
+  $("#form").show();
+  $("#form").empty();
+  $("#form").append(`
+        <div class="abcdefg">
+        <h2>Veuillez entrer le code de vérification de que vous avez reçu par courriel</h2>
+          <form class="form" id="verifForm">
+              <input 
+                  class="form-control"
+                  name="VerifyCode"
+                  id="VerifyCode"
+                  placeholder="Code de vérification de courriel"
+                  required
+                  type="number"
+              />
+              <p style="color: red;" id="errMsg"></p>
+              <input type="submit" value="Vérifier" id="verifySubmit" class="btn btn-primary">
+          </form>
+          </div>
+      `);
+
+  initFormValidation(); // important do to after all html injection!
+
+  $("#verifForm").on("submit", async function (event) {
+    event.preventDefault();
+    $.ajax({
+      url: `http://localhost:5000/accounts/verify?id=${user.Id}&code=${$(
+        "#VerifyCode"
+      ).val()}`,
+      method: "GET",
+      success: function (response) {
+        user.VerifyCode = "verified";
+        sessionStorage.setItem("user", JSON.stringify(user));
+        showPosts();
+      },
+      error: function (error) {
+        $("#errMsg").text(error.responseJSON.error_description);
+      },
+    });
+  });
+}
+
+function renderModificationForm(user) {
+  const token = sessionStorage.getItem("bearerToken");
+  $("#form").show();
+  $("#form").empty();
+  $("#form").append(`
+        <div class="abcdefg">
+          <form class="form" id="modifyForm">
+          <fieldset>
+            <legend>Adresse courriel</legend>
+            <input type="hidden" id="Id" name="Id" value="${user.Id}"/>
+            <input 
+                  class="form-control"
+                  name="Email"
+                  id="Email"
+                  placeholder="Courriel"
+                  required
+                  type="email"
+                  value="${user.Email}"
+                  CustomErrorMessage="Ce courriel est déjà utilisé"
+              />
+              <input 
+                  class="form-control MatchedInput"
+                  name="Email-confirm"
+                  id="EmailConfirm"
+                  placeholder="Confirmer le courriel"
+                  required
+                  type="email"
+                  matchedInputId="Email"
+                  value="${user.Email}"
+                  CustomErrorMessage="Les courriels ne correspondent pas"
+              />
+          </fieldset>
+          <fieldset>
+            <legend>Mot de passe</legend>
+            <input 
+                  class="form-control"
+                  name="Password"
+                  id="Password"
+                  placeholder="Mot de passe"
+                  required
+                  type="password"
+                  matchedInputId="PasswordConfirm"
+              />
+              <input 
+                  class="form-control MatchedInput"
+                  name="Password-confirm"
+                  id="PasswordConfirm"
+                  placeholder="Confirmer le mot de passe"
+                  required
+                  type="password"
+                  matchedInputId="Password"
+                  CustomErrorMessage="Les mots de passe ne correspondent pas"
+              />
+          </fieldset>
+          <fieldset>
+            <legend>Nom</legend>
+            <input 
+                class="form-control"
+                name="Name"
+                id="Name"
+                placeholder="Nom"
+                required
+                type="text"
+                value="${user.Name}"
+              />
+          </fieldset>
+          <fieldset>
+            <legend>Avatar</legend>
+            <label class="form-label">Image </label>
+            <div class='imageUploaderContainer'>
+                <div class='imageUploader'
+                     newImage='${false}'
+                     controlId='Avatar'
+                     imageSrc='${user.Avatar}' 
+                     waitingImage="Loading_icon.gif">
+                </div>
+            </div>
+          </fieldset>
+          <input type="submit" value="Enregistrer" id="modifySubmit" class="btn btn-primary">
+          </form>
+          </div>
+      `);
+
+  initFormValidation(); // important do to after all html injection!
+  initImageUploaders();
+  addConflictValidation(
+    "http://localhost:5000/accounts/conflict",
+    "Email",
+    "modifySubmit"
+  );
+
+  $("#modifyForm").on("submit", async function (event) {
+    event.preventDefault();
+    const formUser = getFormData($("#modifyForm"));
+    const newUser = {
+      Id: user.Id,
+      Email: formUser.Email,
+      Password: formUser.Password,
+      Name: formUser.Name,
+      Avatar: formUser.Avatar,
+      Created: user.Created,
+      VerifyCode: user.VerifyCode,
+      Authorizations: user.Authorizations,
+    };
+    user.Email = formUser.Email;
+    user.Password = formUser.Password;
+    user.Name = formUser.Name;
+    user.Avatar = formUser.Avatar
+    alert(formUser.Avatar);
+    $.ajax({
+      url: "http://localhost:5000/accounts/modify",
+      method: "PUT",
+      contentType: "application/json",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      data: JSON.stringify(newUser),
+      success: function (response) {
+        sessionStorage.setItem("user", JSON.stringify(user));
+        showPosts();
+      },
+      error: function (error) {
+        $("#errMsg").text(error.responseJSON.error_description);
+      },
+    });
+  });
+}
+
+function renderLoginForm(user = null, info = "") {
   let create = user == null;
   if (create) user = newUser();
   $("#form").show();
   $("#form").empty();
   $("#form").append(`
         <div class="abcdefg">
+          <h2 id="info">${info}</h2>
           <form class="form" id="loginForm">
               <input 
                   class="form-control"
@@ -681,14 +877,17 @@ function renderLoginForm(user = null) {
                   placeholder="Courriel"
                   required
                   type="email"
+                  CustomErrorMessage="Ce courriel est déjà utilisé"
               />
               <input 
-                  class="form-control"
+                  class="form-control MatchedInput"
                   name="Email-confirm"
                   id="EmailConfirm"
                   placeholder="Confirmer le courriel"
                   required
                   type="email"
+                  matchedInputId="Email"
+                  CustomErrorMessage="Les courriels ne correspondent pas"
               />
           </fieldset>
           <fieldset>
@@ -700,14 +899,17 @@ function renderLoginForm(user = null) {
                   placeholder="Mot de passe"
                   required
                   type="password"
+                  matchedInputId="PasswordConfirm"
               />
               <input 
-                  class="form-control"
+                  class="form-control MatchedInput"
                   name="Password-confirm"
                   id="PasswordConfirm"
                   placeholder="Confirmer le mot de passe"
                   required
                   type="password"
+                  matchedInputId="Password"
+                  CustomErrorMessage="Les mots de passe ne correspondent pas"
               />
           </fieldset>
           <fieldset>
@@ -740,28 +942,35 @@ function renderLoginForm(user = null) {
 
     initImageUploaders();
     initFormValidation();
+    addConflictValidation(
+      "http://localhost:5000/accounts/conflict",
+      "Email",
+      "registerSubmit"
+    );
 
     $("#registerForm").on("submit", async function (event) {
-        event.preventDefault();
-        const newUser = getFormData($("#registerForm"));
-        $.ajax({
-          url: "http://localhost:5000/accounts/register",
-          method: "POST",
-          contentType: "application/json",
-          data: JSON.stringify({
-            Email: $("#Email").val(),
-            Password: $("#Password").val(),
-            Name: $("#Name").val(),
-            Avatar: newUser.Avatar,
-          }),
-          success: function (response) {
-            showPosts();
-          },
-          error: function (error) {
-            $("#errMsg").text(error.responseJSON.error_description);
-          },
-        });
+      event.preventDefault();
+      const newUser = getFormData($("#registerForm"));
+      $.ajax({
+        url: "http://localhost:5000/accounts/register",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+          Email: $("#Email").val(),
+          Password: $("#Password").val(),
+          Name: $("#Name").val(),
+          Avatar: newUser.Avatar,
+        }),
+        success: function (response) {
+          showLoginPage(
+            "Votre compte a été créé. Veuillez prendre vos courriels pour récupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion."
+          );
+        },
+        error: function (error) {
+          $("#errMsg").text(error.responseJSON.error_description);
+        },
       });
+    });
   });
 
   $("#loginForm").on("submit", async function (event) {
@@ -784,9 +993,5 @@ function renderLoginForm(user = null) {
         $("#errMsg").text(error.responseJSON.error_description);
       },
     });
-  });
-
-  $("#cancel").on("click", async function () {
-    await showPosts();
   });
 }

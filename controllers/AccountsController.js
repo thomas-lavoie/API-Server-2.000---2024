@@ -87,7 +87,7 @@ export default class AccountsController extends Controller {
                     if (this.repository.model.state.isValid) {
                         userFound = this.repository.get(userFound.Id); // get data binded record
                         this.HttpContext.response.JSON(userFound);
-                        this.sendConfirmedEmail(userFound);
+                        // this.sendConfirmedEmail(userFound);
                     } else {
                         this.HttpContext.response.unprocessable();
                     }
@@ -125,7 +125,7 @@ export default class AccountsController extends Controller {
             if (this.repository.model.state.isValid) {
                 this.HttpContext.response.created(newUser);
                 newUser.Verifycode = verifyCode;
-                this.sendVerificationEmail(newUser);
+                // this.sendVerificationEmail(newUser);
             } else {
                 if (this.repository.model.state.inConflict)
                     this.HttpContext.response.conflict(this.repository.model.state.errors);

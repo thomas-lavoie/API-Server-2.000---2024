@@ -254,7 +254,7 @@ label {
     display:none;
 }
 
-#loginForm {
+#loginForm, #verifForm {
     margin-top: 100px;
     display: flex;
     flex-direction: column;
@@ -263,7 +263,7 @@ label {
     width: 60%;
 }
 
-#loginForm input {
+#loginForm input, #verifForm input {
     margin-bottom: 20px;
     width: 100%;
 }
