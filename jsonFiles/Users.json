@@ -63,24 +63,13 @@
     "Id": "f11ee960-aa82-11ef-b942-e7f097a2ee7a"
   },
   {
-    "Email": "a@a.aa",
-    "Password": "a@a.aa@a.a",
-    "Name": "a@a.a",
-    "Avatar": "2ec942a1-b14b-11ef-9c14-1befa77e2034.jpeg",
-    "Created": 1733212228,
-    "VerifyCode": 876590,
-    "Authorizations": { "readAccess": 1, "writeAccess": 1 },
-    "Id": "2ec942a0-b14b-11ef-9c14-1befa77e2034"
-  },
-  {
-    "Email": "a@a.a",
-    "Password": "a@a.aa@a.a",
-    "Name": "a@a.a",
-    "Avatar": "86ed58e1-b14b-11ef-9c14-1befa77e2034.jpeg",
-    "Created": 1733212342,
+    "Email": "lavoiethomas17@gmail.com",
+    "Password": "password",
+    "Name": "Thomas Lavoie",
+    "Avatar": "c9234a81-b1cd-11ef-9754-d5848332a881.jpeg",
+    "Created": 1733268494,
     "VerifyCode": "verified",
     "Authorizations": { "readAccess": 1, "writeAccess": 1 },
-    "Verifycode": 794929,
-    "Id": "86ed58e0-b14b-11ef-9c14-1befa77e2034"
+    "Id": "c9234a80-b1cd-11ef-9754-d5848332a881"
   }
 ]

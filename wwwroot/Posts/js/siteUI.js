@@ -237,7 +237,7 @@ async function renderPosts(queryString) {
     let Posts = response.data;
     if (Posts.length > 0) {
       Posts.forEach((Post) => {
-        postsPanel.append(renderPost(Post));
+        postsPanel.append(renderPost(Post, user));
       });
     } else endOfData = true;
     linefeeds_to_Html_br(".postText");
@@ -254,16 +254,36 @@ async function renderPosts(queryString) {
 }
 function renderPost(post, loggedUser) {
   let date = convertToFrenchDate(UTC_To_Local(post.Date));
-  let crudIcon = `
+  let crudIcon = "";
+  if (loggedUser && loggedUser.Authorizations.writeAccess >= 2) {
+    crudIcon = `
         <span class="editCmd cmdIconSmall fa fa-pencil" postId="${post.Id}" title="Modifier nouvelle"></span>
         <span class="deleteCmd cmdIconSmall fa fa-trash" postId="${post.Id}" title="Effacer nouvelle"></span>
         `;
+  }
+
+  liked = false;
+
+  let likes = `<span class="likeCmd cmdIconSmall fa-regular fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="Thomas Lavoie">1</span>`;
+
+  $.ajax({
+    url: `http://localhost:5000/likes/liked?user_id=${loggedUser.Id}&post_id=${post.Id}`,
+    method: "GET",
+    success: function (response) {
+      if (response.liked) {
+        $(`#like-${post.Id}`)
+          .removeClass("fa-regular fa-thumbs-up")
+          .addClass("fa fa-thumbs-up");
+      }
+    },
+  });
 
   return $(`
         <div class="post" id="${post.Id}">
             <div class="postHeader">
                 ${post.Category}
                 ${crudIcon}
+                ${likes}
             </div>
             <div class="postTitle"> ${post.Title} </div>
             <img class="postImage" src='${post.Image}'/>
@@ -777,6 +797,7 @@ function renderModificationForm(user) {
           </fieldset>
           <input type="submit" value="Enregistrer" id="modifySubmit" class="btn btn-primary">
           </form>
+          <button class="btn btn-warning" id="delete">Effacer le compte</button>
           </div>
       `);
 
@@ -801,11 +822,6 @@ function renderModificationForm(user) {
       VerifyCode: user.VerifyCode,
       Authorizations: user.Authorizations,
     };
-    user.Email = formUser.Email;
-    user.Password = formUser.Password;
-    user.Name = formUser.Name;
-    user.Avatar = formUser.Avatar
-    alert(formUser.Avatar);
     $.ajax({
       url: "http://localhost:5000/accounts/modify",
       method: "PUT",
@@ -815,7 +831,25 @@ function renderModificationForm(user) {
       },
       data: JSON.stringify(newUser),
       success: function (response) {
-        sessionStorage.setItem("user", JSON.stringify(user));
+        sessionStorage.setItem("user", JSON.stringify(response));
+        showPosts();
+      },
+      error: function (error) {
+        $("#errMsg").text(error.responseJSON.error_description);
+      },
+    });
+  });
+
+  $("#delete").on("click", async () => {
+    $.ajax({
+      url: `http://localhost:5000/accounts/remove/${user.Id}`,
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      success: function (response) {
+        sessionStorage.clear();
+        updateDropDownMenu();
         showPosts();
       },
       error: function (error) {
