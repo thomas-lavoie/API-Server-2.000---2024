@@ -94,7 +94,12 @@ function toogleShowKeywords() {
 /////////////////////////// Views management ////////////////////////////////////////////////////////////
 
 function intialView() {
-  $("#createPost").show();
+  let user = JSON.parse(sessionStorage.getItem("user"));
+  if (user && user.Authorizations.writeAccess >= 2) {
+    $("#createPost").show();
+  } else {
+    $("#createPost").hide();
+  }
   $("#hiddenIcon").hide();
   $("#hiddenIcon2").hide();
   $("#menu").show();
@@ -218,8 +223,21 @@ function start_Periodic_Refresh() {
     }
   }, periodicRefreshPeriod * 1000);
 }
+
+async function getLikes() {
+  const token = sessionStorage.getItem("bearerToken");
+  const response = await fetch(`http://localhost:5000/api/likes`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return await response.json();
+}
+
 async function renderPosts(queryString) {
   let user = JSON.parse(sessionStorage.getItem("user"));
+
+  let likesTab = await getLikes();
+
   let endOfData = false;
   queryString += "&sort=date,desc";
   compileCategories();
@@ -237,7 +255,7 @@ async function renderPosts(queryString) {
     let Posts = response.data;
     if (Posts.length > 0) {
       Posts.forEach((Post) => {
-        postsPanel.append(renderPost(Post, user));
+        postsPanel.append(renderPost(Post, likesTab, user));
       });
     } else endOfData = true;
     linefeeds_to_Html_br(".postText");
@@ -250,9 +268,52 @@ async function renderPosts(queryString) {
   if (user && user.VerifyCode === "unverified") {
     showVerifyPage(user);
   }
+
+  // Click to like
+  $(".likeCmd").on("click", async (event) => {
+    const token = sessionStorage.getItem("bearerToken");
+    const postId = $(event.target).attr("postId");
+
+    let liked = false;
+    let likeId = null;
+    likesTab.forEach((like) => {
+      if (like.post_id == postId && like.user_id == user.Id) {
+        liked = true;
+        likeId = like.Id;
+      }
+    });
+
+    if (liked) {
+      const response = await fetch(
+        `http://localhost:5000/api/likes/${likeId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } else {
+      const response = await fetch(`http://localhost:5000/api/likes`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          post_id: postId,
+          user_id: user.Id,
+          username: user.Name,
+        }),
+      });
+    }
+  });
+
   return endOfData;
 }
-function renderPost(post, loggedUser) {
+
+function renderPost(post, likesTab, loggedUser = null) {
   let date = convertToFrenchDate(UTC_To_Local(post.Date));
   let crudIcon = "";
   if (loggedUser && loggedUser.Authorizations.writeAccess >= 2) {
@@ -262,26 +323,35 @@ function renderPost(post, loggedUser) {
         `;
   }
 
-  liked = false;
-
-  let likes = `<span class="likeCmd cmdIconSmall fa-regular fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="Thomas Lavoie">1</span>`;
-
-  $.ajax({
-    url: `http://localhost:5000/likes/liked?user_id=${loggedUser.Id}&post_id=${post.Id}`,
-    method: "GET",
-    success: function (response) {
-      if (response.liked) {
-        $(`#like-${post.Id}`)
-          .removeClass("fa-regular fa-thumbs-up")
-          .addClass("fa fa-thumbs-up");
+  let likes = "";
+  let likeCount = 0;
+  let names = "";
+  if (loggedUser && loggedUser.Authorizations.writeAccess >= 1) {
+    let liked = false;
+    likesTab.forEach((like) => {
+      if (like.post_id == post.Id) {
+        likeCount++;
+        names += `${like.username}\n`
+        if (like.user_id == loggedUser.Id) {
+          liked = true;
+          likes = `<span class="likeCmd cmdIconSmall fa fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="${names}">${likeCount}</span>`;
+        } else {
+          likes = `<span class="likeCmd cmdIconSmall fa-regular fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="${names}">${likeCount}</span>`
+        }
+      } else {
+        if (!liked)
+          likes = `<span class="likeCmd cmdIconSmall fa-regular fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="${names}">${likeCount}</span>`;
       }
-    },
-  });
+    });
+    if (likesTab.length <= 0) {
+      likes = `<span class="likeCmd cmdIconSmall fa-regular fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="${names}">${likeCount}</span>`;
+    }
+  }
 
   return $(`
         <div class="post" id="${post.Id}">
             <div class="postHeader">
-                ${post.Category}
+                <span class="cat">${post.Category}</span>
                 ${crudIcon}
                 ${likes}
             </div>

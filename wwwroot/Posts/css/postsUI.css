@@ -39,11 +39,16 @@
 
 .postHeader {
     color: blue;
-    display: grid;
-    grid-template-columns: auto 30px 30px;
+    display: flex;
+    flex-direction: row;
     align-items: center;
+    gap: 10px;
     height: 34px;
     text-transform: uppercase;
+}
+
+.cat {
+    flex: 1;
 }
 
 .postTitle {

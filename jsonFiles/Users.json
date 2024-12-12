@@ -69,7 +69,7 @@
     "Avatar": "c9234a81-b1cd-11ef-9754-d5848332a881.jpeg",
     "Created": 1733268494,
     "VerifyCode": "verified",
-    "Authorizations": { "readAccess": 1, "writeAccess": 1 },
+    "Authorizations": { "readAccess": 3, "writeAccess": 3 },
     "Id": "c9234a80-b1cd-11ef-9754-d5848332a881"
   }
 ]
