@@ -131,6 +131,10 @@ function showLogin() {
 function showVerify() {
   hidePosts(true);
 }
+function showManageUsers() {
+  hidePosts();
+  $("#abort").show();
+}
 function showModification() {
   hidePosts();
   $("#abort").show();
@@ -165,6 +169,11 @@ function showVerifyPage(user = null) {
   showVerify();
   $("#viewTitle").text("Vérification");
   renderVerificationForm(user);
+}
+function showManageUsersPage(user) {
+  showManageUsers();
+  $("#viewTitle").text("Gestion des usagers");
+  renderManageUsers(user);
 }
 function showModificationPage(user) {
   showModification();
@@ -331,12 +340,12 @@ function renderPost(post, likesTab, loggedUser = null) {
     likesTab.forEach((like) => {
       if (like.post_id == post.Id) {
         likeCount++;
-        names += `${like.username}\n`
+        names += `${like.username}\n`;
         if (like.user_id == loggedUser.Id) {
           liked = true;
           likes = `<span class="likeCmd cmdIconSmall fa fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="${names}">${likeCount}</span>`;
         } else {
-          likes = `<span class="likeCmd cmdIconSmall fa-regular fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="${names}">${likeCount}</span>`
+          likes = `<span class="likeCmd cmdIconSmall fa-regular fa-thumbs-up" id="like-${post.Id}" postId="${post.Id}" title="${names}">${likeCount}</span>`;
         }
       } else {
         if (!liked)
@@ -395,6 +404,16 @@ function updateDropDownMenu() {
             </div>
             `)
     );
+    if (user.Authorizations.writeAccess >= 3) {
+      DDMenu.append($(`<div class="dropdown-divider"></div>`));
+      DDMenu.append(
+        $(`
+          <div class="dropdown-item menuItemLayout" id="manageUsersLink">
+              <i class="menuIcon fa fa-user-gear mx-2"></i> Gestion des usagers
+          </div>
+          `)
+      );
+    }
     DDMenu.append($(`<div class="dropdown-divider"></div>`));
     DDMenu.append(
       $(`
@@ -423,6 +442,13 @@ function updateDropDownMenu() {
         },
       });
     });
+
+    if (user.Authorizations.writeAccess >= 3) {
+      $("#manageUsersLink").on("click", function () {
+        showManageUsersPage(user);
+      });
+    }
+
     $("#modifyUserLink").on("click", function () {
       showModificationPage(user);
     });
@@ -787,6 +813,119 @@ function renderVerificationForm(user = null) {
   });
 }
 
+async function renderManageUsers(user) {
+  const token = sessionStorage.getItem("bearerToken");
+
+  const response = await fetch("http://localhost:5000/accounts", {
+    method: "GET",
+    headers: {
+      Authorization: token,
+    },
+  });
+
+  const users = await response.json();
+
+  $("#form").show();
+  $("#form").empty();
+  $("#form").append(
+    `<div class="abcdefg">
+
+    </div>`
+  );
+
+  users.forEach((item) => {
+    if (item.Id != user.Id && item.Authorizations.writeAccess != 3) {
+      let auth = `<i class="menuIcon fa-solid fa-user"></i>`;
+      if (item.Authorizations.writeAccess == 2)
+        auth = `<i class="menuIcon fa-solid fa-user-pen"></i>`;
+      if (item.Authorizations.writeAccess == 3)
+        auth = `<i class="menuIcon fa-solid fa-user-shield"></i>`;
+
+      let ban = `<i class="menuIcon fa-solid fa-ban"></i>`;
+      if (item.Authorizations.writeAccess == 0)
+        ban = `<i class="blockedIcon fa-solid fa-ban"></i>`;
+
+      row = `
+        <div class="user-row">
+          <div class="user-avatar">
+            <img id="avatarDD" src="${item.Avatar}" />
+          </div>
+          <div class="user-contact">
+            <b>${item.Name}</b>
+            ${item.Email}
+          </div>
+          <div class="user-auth">
+            <form id="change-auth-${item.Id}">
+              <button class="iconBtn" type="submit">
+                ${auth}
+              </button>
+            </form>
+            <form id="change-ban-${item.Id}">
+              <button class="iconBtn" type="submit">
+                ${ban}
+              </button>
+            </form>
+          </div>
+        </div>
+      `;
+
+      $(".abcdefg").append(row);
+
+      $(`#change-auth-${item.Id}`).on("submit", async function (event) {
+        event.preventDefault();
+        const newUser = {
+          Id: item.Id,
+          Email: item.Email,
+          Password: item.Password,
+          Name: item.Name,
+          Avatar: item.Avatar,
+          Created: item.Created,
+          VerifyCode: item.VerifyCode,
+          Authorizations: item.Authorizations,
+        };
+        $.ajax({
+          url: "http://localhost:5000/accounts/promote",
+          method: "POST",
+          contentType: "application/json",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          data: JSON.stringify(newUser),
+          success: function (response) {
+            showManageUsers();
+          },
+        });
+      });
+
+      $(`#change-ban-${item.Id}`).on("submit", async function (event) {
+        event.preventDefault();
+        const newUser = {
+          Id: item.Id,
+          Email: item.Email,
+          Password: item.Password,
+          Name: item.Name,
+          Avatar: item.Avatar,
+          Created: item.Created,
+          VerifyCode: item.VerifyCode,
+          Authorizations: item.Authorizations,
+        };
+        $.ajax({
+          url: "http://localhost:5000/accounts/block",
+          method: "POST",
+          contentType: "application/json",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          data: JSON.stringify(newUser),
+          success: function (response) {
+            showManageUsers();
+          },
+        });
+      });
+    }
+  });
+}
+
 function renderModificationForm(user) {
   const token = sessionStorage.getItem("bearerToken");
   $("#form").show();
@@ -1088,10 +1227,15 @@ function renderLoginForm(user = null, info = "") {
         Password: $("#Password").val(),
       }),
       success: function (response) {
-        sessionStorage.setItem("bearerToken", response.Access_token);
-        sessionStorage.setItem("expiration", response.Expire_Time);
-        sessionStorage.setItem("user", JSON.stringify(response.User));
-        showPosts();
+        const user = response.User;
+        if (user.Authorizations.readAccess != 0) {
+          sessionStorage.setItem("bearerToken", response.Access_token);
+          sessionStorage.setItem("expiration", response.Expire_Time);
+          sessionStorage.setItem("user", JSON.stringify(user));
+          showPosts();
+        } else {
+          $("#errMsg").text("Ce compte est bloqué.");
+        }
       },
       error: function (error) {
         $("#errMsg").text(error.responseJSON.error_description);

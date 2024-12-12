@@ -170,6 +170,10 @@ body {
     -webkit-text-fill-color: rgb(0, 87, 204);
 }
 
+.blockedIcon {
+    -webkit-text-fill-color: rgb(255, 0, 0);
+}
+
 .menuItemLayout {
     display: grid;
     grid-template-columns: 35px auto;
@@ -288,4 +292,44 @@ label {
 #avatarDD {
     height: 32px;
     border-radius: 9999px;
+}
+
+.user-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    border: 3px solid grey;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.user-row:hover {
+    background-color: #0001;
+}
+
+.user-contact {
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 250px;
+}
+
+.user-auth {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-auth i {
+    cursor: pointer;
+}
+
+.iconBtn {
+    border: none;
+    background: none;
 }

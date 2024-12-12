@@ -155,15 +155,9 @@ export default class AccountsController extends Controller {
     block(user) {
         if (this.repository != null) {
             let foundUser = this.repository.findByField("Id", user.Id);
-            foundUser.Authorizations.readAccess = foundUser.Authorizations.readAccess == 1 ? -1 : 1;
-            foundUser.Authorizations.writeAccess = foundUser.Authorizations.writeAccess == 1 ? -1 : 1;
+            foundUser.Authorizations.readAccess = 0;
+            foundUser.Authorizations.writeAccess = 0;
             this.repository.update(user.Id, foundUser, false);
-            if (this.repository.model.state.isValid) {
-                userFound = this.repository.get(userFound.Id); // get data binded record
-                this.HttpContext.response.JSON(userFound);
-            }
-            else
-                this.HttpContext.response.badRequest(this.repository.model.state.errors);
         } else
             this.HttpContext.response.notImplemented();
     }
