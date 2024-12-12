@@ -7,6 +7,9 @@ const waitingGifTrigger = 2000;
 const minKeywordLenth = 3;
 const keywordsOnchangeDelay = 500;
 
+const API_IP = "http://localhost:5000";
+// const API_IP = "https://knowing-nine-intelligence.glitch.me/";
+
 let categories = [];
 let selectedCategory = "";
 let currentETag = "";
@@ -120,7 +123,7 @@ async function showPosts(reset = false) {
   if (user) {
     initTimeout(360, function () {
       $.ajax({
-        url: `http://localhost:5000/accounts/logout?userId=${user.Id}`,
+        url: `${API_IP}/accounts/logout?userId=${user.Id}`,
         method: "GET",
         success: function () {
           sessionStorage.clear();
@@ -258,7 +261,7 @@ function start_Periodic_Refresh() {
 
 async function getLikes() {
   const token = sessionStorage.getItem("bearerToken");
-  const response = await fetch(`http://localhost:5000/api/likes`, {
+  const response = await fetch(`${API_IP}/api/likes`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -317,7 +320,7 @@ async function renderPosts(queryString) {
 
     if (liked) {
       const response = await fetch(
-        `http://localhost:5000/api/likes/${likeId}`,
+        `${API_IP}/api/likes/${likeId}`,
         {
           method: "DELETE",
           headers: {
@@ -327,7 +330,7 @@ async function renderPosts(queryString) {
         }
       );
     } else {
-      const response = await fetch(`http://localhost:5000/api/likes`, {
+      const response = await fetch(`${API_IP}/api/likes`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -340,6 +343,7 @@ async function renderPosts(queryString) {
         }),
       });
     }
+    showPosts();
   });
 
   return endOfData;
@@ -455,7 +459,7 @@ function updateDropDownMenu() {
     DDMenu.append($(`<div class="dropdown-divider"></div>`));
     $("#logoutLink").on("click", function () {
       $.ajax({
-        url: `http://localhost:5000/accounts/logout?userId=${user.Id}`,
+        url: `${API_IP}/accounts/logout?userId=${user.Id}`,
         method: "GET",
         success: function () {
           sessionStorage.clear();
@@ -820,7 +824,7 @@ function renderVerificationForm(user = null) {
   $("#verifForm").on("submit", async function (event) {
     event.preventDefault();
     $.ajax({
-      url: `http://localhost:5000/accounts/verify?id=${user.Id}&code=${$(
+      url: `${API_IP}/accounts/verify?id=${user.Id}&code=${$(
         "#VerifyCode"
       ).val()}`,
       method: "GET",
@@ -839,7 +843,7 @@ function renderVerificationForm(user = null) {
 async function renderManageUsers(user) {
   const token = sessionStorage.getItem("bearerToken");
 
-  const response = await fetch("http://localhost:5000/accounts", {
+  const response = await fetch(`${API_IP}/accounts`, {
     method: "GET",
     headers: {
       Authorization: token,
@@ -907,7 +911,7 @@ async function renderManageUsers(user) {
           Authorizations: item.Authorizations,
         };
         $.ajax({
-          url: "http://localhost:5000/accounts/promote",
+          url: `${API_IP}/accounts/promote`,
           method: "POST",
           contentType: "application/json",
           headers: {
@@ -932,7 +936,7 @@ async function renderManageUsers(user) {
         };
         if (banned) {
           $.ajax({
-            url: "http://localhost:5000/accounts/promote",
+            url: `${API_IP}/accounts/promote`,
             method: "POST",
             contentType: "application/json",
             headers: {
@@ -942,7 +946,7 @@ async function renderManageUsers(user) {
           });
         } else {
           $.ajax({
-            url: "http://localhost:5000/accounts/block",
+            url: `${API_IP}/accounts/block`,
             method: "POST",
             contentType: "application/json",
             headers: {
@@ -1044,7 +1048,7 @@ function renderModificationForm(user) {
   initFormValidation(); // important do to after all html injection!
   initImageUploaders();
   addConflictValidation(
-    "http://localhost:5000/accounts/conflict",
+    `${API_IP}/accounts/conflict`,
     "Email",
     "modifySubmit"
   );
@@ -1063,7 +1067,7 @@ function renderModificationForm(user) {
       Authorizations: user.Authorizations,
     };
     $.ajax({
-      url: "http://localhost:5000/accounts/modify",
+      url: `${API_IP}/accounts/modify`,
       method: "PUT",
       contentType: "application/json",
       headers: {
@@ -1082,7 +1086,7 @@ function renderModificationForm(user) {
 
   $("#delete").on("click", async () => {
     $.ajax({
-      url: `http://localhost:5000/accounts/remove/${user.Id}`,
+      url: `${API_IP}/accounts/remove/${user.Id}`,
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -1217,7 +1221,7 @@ function renderLoginForm(user = null, info = "") {
     initImageUploaders();
     initFormValidation();
     addConflictValidation(
-      "http://localhost:5000/accounts/conflict",
+      `${API_IP}/accounts/conflict`,
       "Email",
       "registerSubmit"
     );
@@ -1226,7 +1230,7 @@ function renderLoginForm(user = null, info = "") {
       event.preventDefault();
       const newUser = getFormData($("#registerForm"));
       $.ajax({
-        url: "http://localhost:5000/accounts/register",
+        url: `${API_IP}/accounts/register`,
         method: "POST",
         contentType: "application/json",
         data: JSON.stringify({
@@ -1250,7 +1254,7 @@ function renderLoginForm(user = null, info = "") {
   $("#loginForm").on("submit", async function (event) {
     event.preventDefault();
     $.ajax({
-      url: "http://localhost:5000/token",
+      url: `${API_IP}/token`,
       method: "POST",
       contentType: "application/json",
       data: JSON.stringify({
