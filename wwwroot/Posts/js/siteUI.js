@@ -864,9 +864,13 @@ async function renderManageUsers(user) {
       if (item.Authorizations.writeAccess == 3)
         auth = `<i class="menuIcon fa-solid fa-user-shield"></i>`;
 
+      let banned = false;
       let ban = `<i class="menuIcon fa-solid fa-ban"></i>`;
-      if (item.Authorizations.writeAccess == 0)
+      if (item.Authorizations.writeAccess == 0) {
         ban = `<i class="blockedIcon fa-solid fa-ban"></i>`;
+        banned = true;
+        auth = "";
+      }
 
       row = `
         <div class="user-row">
@@ -911,6 +915,7 @@ async function renderManageUsers(user) {
           },
           data: JSON.stringify(newUser),
         });
+        renderManageUsers(user);
       });
 
       $(`#change-ban-${item.Id}`).on("click", function (event) {
@@ -925,18 +930,28 @@ async function renderManageUsers(user) {
           VerifyCode: item.VerifyCode,
           Authorizations: item.Authorizations,
         };
-        $.ajax({
-          url: "http://localhost:5000/accounts/block",
-          method: "POST",
-          contentType: "application/json",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          data: JSON.stringify(newUser),
-          success: function (response) {
-            showManageUsers();
-          },
-        });
+        if (banned) {
+          $.ajax({
+            url: "http://localhost:5000/accounts/promote",
+            method: "POST",
+            contentType: "application/json",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            data: JSON.stringify(newUser),
+          });
+        } else {
+          $.ajax({
+            url: "http://localhost:5000/accounts/block",
+            method: "POST",
+            contentType: "application/json",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            data: JSON.stringify(newUser),
+          });
+        }
+        renderManageUsers(user);
       });
     }
   });
