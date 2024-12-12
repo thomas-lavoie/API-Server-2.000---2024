@@ -112,10 +112,26 @@ function intialView() {
   showSearchIcon();
 }
 async function showPosts(reset = false) {
+  let user = JSON.parse(sessionStorage.getItem("user"));
   intialView();
   $("#viewTitle").text("Fil de nouvelles");
   periodic_Refresh_paused = false;
   await postsPanel.show(reset);
+  if (user) {
+    initTimeout(360, function () {
+      $.ajax({
+        url: `http://localhost:5000/accounts/logout?userId=${user.Id}`,
+        method: "GET",
+        success: function () {
+          sessionStorage.clear();
+          user = null;
+          updateDropDownMenu();
+          showPosts();
+        },
+      });
+    });
+    timeout();
+  }
 }
 function hidePosts(keepMenu = false) {
   postsPanel.hide();
@@ -169,31 +185,37 @@ function showVerifyPage(user = null) {
   showVerify();
   $("#viewTitle").text("Vérification");
   renderVerificationForm(user);
+  timeout();
 }
 function showManageUsersPage(user) {
   showManageUsers();
   $("#viewTitle").text("Gestion des usagers");
   renderManageUsers(user);
+  timeout();
 }
 function showModificationPage(user) {
   showModification();
   $("#viewTitle").text("Modification");
   renderModificationForm(user);
+  timeout();
 }
 function showCreatePostForm() {
   showForm();
   $("#viewTitle").text("Ajout de nouvelle");
   renderPostForm();
+  timeout();
 }
 function showEditPostForm(id) {
   showForm();
   $("#viewTitle").text("Modification");
   renderEditPostForm(id);
+  timeout();
 }
 function showDeletePostForm(id) {
   showForm();
   $("#viewTitle").text("Retrait");
   renderDeletePostForm(id);
+  timeout();
 }
 function showAbout() {
   hidePosts();
@@ -202,6 +224,7 @@ function showAbout() {
   $("#abort").show();
   $("#viewTitle").text("À propos...");
   $("#aboutContainer").show();
+  timeout();
 }
 
 //////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
@@ -834,7 +857,7 @@ async function renderManageUsers(user) {
   );
 
   users.forEach((item) => {
-    if (item.Id != user.Id && item.Authorizations.writeAccess != 3) {
+    if (item.Id != user.Id) {
       let auth = `<i class="menuIcon fa-solid fa-user"></i>`;
       if (item.Authorizations.writeAccess == 2)
         auth = `<i class="menuIcon fa-solid fa-user-pen"></i>`;
@@ -855,23 +878,19 @@ async function renderManageUsers(user) {
             ${item.Email}
           </div>
           <div class="user-auth">
-            <form id="change-auth-${item.Id}">
-              <button class="iconBtn" type="submit">
-                ${auth}
-              </button>
-            </form>
-            <form id="change-ban-${item.Id}">
-              <button class="iconBtn" type="submit">
-                ${ban}
-              </button>
-            </form>
+            <div class="iconBtn" id="change-auth-${item.Id}">
+              ${auth}
+            </div>
+            <div class="iconBtn" id="change-ban-${item.Id}">
+              ${ban}
+            </div>
           </div>
         </div>
       `;
 
       $(".abcdefg").append(row);
 
-      $(`#change-auth-${item.Id}`).on("submit", async function (event) {
+      $(`#change-auth-${item.Id}`).on("click", function (event) {
         event.preventDefault();
         const newUser = {
           Id: item.Id,
@@ -891,13 +910,10 @@ async function renderManageUsers(user) {
             Authorization: `Bearer ${token}`,
           },
           data: JSON.stringify(newUser),
-          success: function (response) {
-            showManageUsers();
-          },
         });
       });
 
-      $(`#change-ban-${item.Id}`).on("submit", async function (event) {
+      $(`#change-ban-${item.Id}`).on("click", function (event) {
         event.preventDefault();
         const newUser = {
           Id: item.Id,
